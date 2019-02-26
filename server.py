@@ -3,7 +3,7 @@ from threading import Thread
 import socket
 import sys
 
-PORT = 9877
+PORT = 9876
 
 
 class ChatServer(Thread):
@@ -36,12 +36,20 @@ class ChatServer(Thread):
                 conn.close()
             elif data[0] == '@list':
                 [conn.sendall((c.nick + '\n').encode()) for c in self.client_pool]
+            elif data[0] == '@nickname':
+                for i in range(len(self.client_pool)):
+                    if self.client_pool[i].nick == nick:
+                        old = self.client_pool[i].nick
+                        self.client_pool[i].nick = data[1].replace('\n', '')
+                reply = 'Your nickname has been changed from {} to {}'.format(old, data[1])
+                conn.sendall(reply.encode())
             else:
                 conn.sendall(b'Invalid commad')
         else:
-            reply = nick.encode() + b': ' + message
-            [c.conn.sendall(reply)
-             for c in self.client_pool if len(self.client_pool)]
+            for c in self.client_pool:
+                if c.id == id:
+                    reply = c.nick.encode() + b': ' + message
+            [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
 
     def run_thread(self, id, nick, conn, addr):
         print('{} connected with {}:{}'.format(nick, addr[0], str(addr[1])))
