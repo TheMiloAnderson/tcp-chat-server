@@ -18,7 +18,6 @@ class ChatServer(Thread):
             socket.IPPROTO_TCP
         )
         self.client_pool = []
-        #self.host = socket.gethostname()
         try:
             self.server.bind((self.host, self.port))
         except:
@@ -45,11 +44,13 @@ class ChatServer(Thread):
                 reply = 'Your nickname has been changed from {} to {}'.format(old, data[1])
                 conn.sendall(reply.encode())
             elif data[0] == '@dm':
-                recipient = re.split('@dm ', data[1])
-                print(recipient)
+                sender = [c.nick for c in self.client_pool if c.id == id]
+                message = re.match(r'(?:\S+\s){1}(.*)', data[1]).group(1)
+                message_line = sender[0] + ': ' + message + '\n'
+                recipient = re.match(r'^\w*', data[1]).group(0)
                 for c in self.client_pool:
                     if c.nick == recipient:
-                        c.conn.sendall(message.encode())
+                        c.conn.sendall(message_line.encode())
             else:
                 conn.sendall(b'Invalid commad')
         else:
