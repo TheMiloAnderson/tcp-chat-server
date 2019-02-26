@@ -2,8 +2,9 @@ from client import ChatClient
 from threading import Thread
 import socket
 import sys
+import re
 
-PORT = 9876
+PORT = 9877
 
 
 class ChatServer(Thread):
@@ -43,6 +44,12 @@ class ChatServer(Thread):
                         self.client_pool[i].nick = data[1].replace('\n', '')
                 reply = 'Your nickname has been changed from {} to {}'.format(old, data[1])
                 conn.sendall(reply.encode())
+            elif data[0] == '@dm':
+                recipient = re.split('@dm ', data[1])
+                print(recipient)
+                for c in self.client_pool:
+                    if c.nick == recipient:
+                        c.conn.sendall(message.encode())
             else:
                 conn.sendall(b'Invalid commad')
         else:
