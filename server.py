@@ -1,8 +1,9 @@
 from client import ChatClient
 from threading import Thread
 import socket
+import sys
 
-PORT = 9876
+PORT = 9877
 
 
 class ChatServer(Thread):
@@ -28,12 +29,13 @@ class ChatServer(Thread):
         if message.decode().startswith('@'):
             data = message.decode().split(maxsplit=1)
             if data[0] == '@quit':
-                conn.sendall(b'You have left the chat.')
+                conn.sendall(b'You have left the chat.\n')
                 reply = nick.encode() + b' has left the channel.\n'
-                [c.conn.sendall(reply)
-                 for c in self.client_pool if len(self.client_pool)]
+                [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
                 self.client_pool = [c for c in self.client_pool if c.id != id]
                 conn.close()
+            elif data[0] == '@list':
+                [conn.sendall((c.nick + '\n').encode()) for c in self.client_pool]
             else:
                 conn.sendall(b'Invalid commad')
         else:
