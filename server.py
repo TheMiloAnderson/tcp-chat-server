@@ -2,7 +2,6 @@ from client import ChatClient
 from threading import Thread
 import socket
 import sys
-import re
 
 PORT = 9877
 
@@ -26,8 +25,9 @@ class ChatServer(Thread):
         self.server.listen(10)
 
     def parser(self, id, nick, conn, message):
+        """ Parse user input """
         if message.decode().startswith('@'):
-            data = message.decode().split(maxsplit=1)
+            data = message.decode().split(maxsplit=2)
             if data[0] == '@quit':
                 conn.sendall(b'You have left the chat.\n')
                 reply = nick.encode() + b' has left the channel.\n'
@@ -44,15 +44,15 @@ class ChatServer(Thread):
                 reply = 'Your nickname has been changed from {} to {}'.format(old, data[1])
                 conn.sendall(reply.encode())
             elif data[0] == '@dm':
-                sender = [c.nick for c in self.client_pool if c.id == id]
-                message = re.match(r'(?:\S+\s){1}(.*)', data[1]).group(1)
-                message_line = sender[0] + ': ' + message + '\n'
-                recipient = re.match(r'^\w*', data[1]).group(0)
+                sender = [c.nick for c in self.client_pool if c.id == id][0]
+                recipient = data[1]
+                message = data[2]
+                reply = 'DM: ' + sender + ': ' + message
                 for c in self.client_pool:
                     if c.nick == recipient:
-                        c.conn.sendall(message_line.encode())
+                        c.conn.sendall(reply.encode())
             else:
-                conn.sendall(b'Invalid commad')
+                conn.sendall(b'Invalid command')
         else:
             for c in self.client_pool:
                 if c.id == id:
@@ -60,6 +60,7 @@ class ChatServer(Thread):
             [c.conn.sendall(reply) for c in self.client_pool if len(self.client_pool)]
 
     def run_thread(self, id, nick, conn, addr):
+        """ Manage connection, accept user input """
         print('{} connected with {}:{}'.format(nick, addr[0], str(addr[1])))
         try:
             while True:
@@ -69,6 +70,7 @@ class ChatServer(Thread):
             conn.close()
 
     def run(self):
+        """ Accept connections, add to client_pool, start thread """
         print('Server running on {} : {}'.format(self.host, PORT))
         while True:
             conn, addr = self.server.accept()
